@@ -33,8 +33,8 @@ export class DeleteUserService {
       return softDeletedUser;
     } catch (error) {
       this.logger.error(
-        `Error soft deleting user with ID ${id}: ${error.message}`,
-        error.stack,
+        `Error soft deleting user with ID ${id}: ${(error as any).message}`,
+        (error as any).stack,
       );
       throw error;
     }

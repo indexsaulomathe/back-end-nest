@@ -45,17 +45,12 @@ export class UsersController {
   @Post()
   @Roles('admin')
   @ApiOperation({ summary: 'Create user' })
-  @ApiCreatedResponse({
-    status: 201,
-    description: 'The user has been successfully created.',
-  })
-  @ApiOkResponse({ status: 403, description: 'Forbidden.' })
+  @ApiOkResponse({ type: UserEntity })
   async create(
     @Body() createUserDto: CreateUserDto,
     @Request() req,
   ): Promise<UserEntity> {
     const authUser = req.user.email;
-    console.log('authUserEmail', authUser);
     return this.createUserService.create(createUserDto, authUser);
   }
 
@@ -82,7 +77,6 @@ export class UsersController {
     @Request() req,
   ): Promise<UserEntity> {
     const authUser = req.user.email;
-    console.log('authUserEmail', authUser);
     return this.updateUserService.update(id, updateUserDto, authUser);
   }
 
@@ -94,7 +88,6 @@ export class UsersController {
     @Request() req,
   ): Promise<UserEntity> {
     const authUser = req.user.email;
-    console.log('authUserEmail', authUser);
     return await this.deleteUserService.remove(id, authUser);
   }
 }

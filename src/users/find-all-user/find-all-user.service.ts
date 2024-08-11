@@ -18,7 +18,10 @@ export class FindAllUserService {
 
       return users;
     } catch (error) {
-      this.logger.error(`Error finding users: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding users: ${(error as any).message}`,
+        (error as any).stack,
+      );
       throw error;
     }
   }

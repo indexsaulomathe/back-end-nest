@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ConflictException,
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -9,7 +10,7 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
-export const roundsOfHashing = 10;
+const roundsOfHashing = 10;
 
 @Injectable()
 export class UpdateUserService {
@@ -22,46 +23,68 @@ export class UpdateUserService {
     updateUserDto: UpdateUserDto,
     authUser: string,
   ): Promise<UserEntity> {
+    const existingUser = await this.findUserById(id);
+
+    if (!existingUser || existingUser.isDeleted) {
+      this.logger.warn(`User with ID ${id} not found or is deleted.`);
+      throw new NotFoundException(
+        `User with ID ${id} not found or is deleted.`,
+      );
+    }
+
+    await this.checkEmailConflict(updateUserDto.email, existingUser.email);
+
+    const hashedPassword =
+      updateUserDto.password && updateUserDto.password !== existingUser.password
+        ? await this.hashPassword(updateUserDto.password)
+        : existingUser.password;
+
     try {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { id, isDeleted: false },
-      });
-
-      if (!existingUser) {
-        this.logger.warn(`User with ID ${id} not found.`);
-        throw new NotFoundException(`User with ID ${id} not found.`);
-      }
-
-      let hashedPassword: string | undefined = undefined;
-      if (
-        updateUserDto.password &&
-        updateUserDto.password !== existingUser.password
-      ) {
-        hashedPassword = await this.hashPassword(updateUserDto.password);
-      }
-
-      const updatedUser = await this.prisma.user.update({
+      return await this.prisma.user.update({
         where: { id },
         data: {
           ...updateUserDto,
-          password: hashedPassword ?? existingUser.password,
+          password: hashedPassword,
           updatedAt: new Date(),
           updatedBy: authUser,
         },
       });
-
-      return updatedUser;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       this.logger.error(
-        `Error updating user with ID ${id}: ${error.message}`,
-        error.stack,
+        `Error updating user with ID ${id}: ${(error as any).message}`,
+        (error as any).stack,
       );
       throw new InternalServerErrorException(
-        'An error occurred while updating the user.',
+        'An error occurred while updating the user. Please try again later.',
       );
+    }
+  }
+
+  private async findUserById(id: number): Promise<UserEntity | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  private async checkEmailConflict(
+    newEmail: string | undefined,
+    existingEmail: string | undefined,
+  ): Promise<void> {
+    if (newEmail && newEmail !== existingEmail) {
+      const emailExists = await this.prisma.user.findUnique({
+        where: { email: newEmail },
+      });
+
+      if (emailExists) {
+        this.logger.warn(`Email ${newEmail} is already in use.`);
+        throw new ConflictException(`Email ${newEmail} is already in use.`);
+      }
     }
   }
 

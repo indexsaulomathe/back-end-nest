@@ -57,8 +57,8 @@ export class CreateUserService {
         throw error;
       }
       this.logger.error(
-        `Error creating user with email ${createUserDto.email}: ${error.message}`,
-        error.stack,
+        `Error creating user with email ${createUserDto.email}: ${(error as any).message}`,
+        (error as any).stack,
       );
       throw new InternalServerErrorException('Error creating user');
     }

@@ -76,14 +76,14 @@ export class UserEntity implements User {
     description: 'The date and time when the user was last updated.',
   })
   @IsDate()
-  updatedAt: Date;
+  updatedAt: Date | null;
 
   @ApiProperty({
     example: 'admin',
     description: 'The user who last updated this account.',
   })
   @IsString()
-  updatedBy: string;
+  updatedBy: string | null;
 
   @ApiProperty({
     example: '2023-07-23T14:48:00.000Z',
@@ -92,7 +92,7 @@ export class UserEntity implements User {
   })
   @IsOptional()
   @IsDate()
-  deletedAt: Date;
+  deletedAt: Date | null;
 
   @ApiProperty({
     example: 'admin',
@@ -101,7 +101,7 @@ export class UserEntity implements User {
   })
   @IsOptional()
   @IsString()
-  deletedBy: string;
+  deletedBy: string | null;
 
   @ApiProperty({
     example: false,

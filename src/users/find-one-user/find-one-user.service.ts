@@ -21,7 +21,9 @@ export class FindOneUserService {
 
       return user;
     } catch (error) {
-      this.logger.error(`Error finding user with ID ${id}: ${error.message}`);
+      this.logger.error(
+        `Error finding user with ID ${id}: ${(error as any).message}`,
+      );
       throw error;
     }
   }
