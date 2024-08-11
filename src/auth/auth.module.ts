@@ -3,11 +3,12 @@ import { AuthService } from './service/auth.service';
 import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { UsersModule } from 'src/users/users.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt-config/jwt.strategy';
+import { JwtAuthGuard } from './jwt-config/jwt-auth.guard';
 
-export const jwtSecret = 'zjP9h6ZI5LoSKCRj';
+export const jwtSecret = process.env.JWT_SECRET || 'default-secret';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ export const jwtSecret = 'zjP9h6ZI5LoSKCRj';
     forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  exports: [AuthService, JwtStrategy, JwtAuthGuard],
 })
 export class AuthModule {}

@@ -8,19 +8,34 @@ export class DeleteUserService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async remove(id: number): Promise<UserEntity> {
+  async remove(id: number, authUser: string): Promise<UserEntity> {
     try {
-      const deletedUser = await this.prisma.user.delete({
-        where: { id },
+      const user = await this.prisma.user.findUnique({
+        where: { id, isDeleted: false },
       });
 
-      if (!deletedUser) {
-        throw new NotFoundException(`User with ID ${id} not found.`);
+      if (!user) {
+        this.logger.warn(`User with ID ${id} not found or already deleted.`);
+        throw new NotFoundException(
+          `User with ID ${id} not found or already deleted.`,
+        );
       }
 
-      return deletedUser;
+      const softDeletedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: authUser || 'system',
+        },
+      });
+
+      return softDeletedUser;
     } catch (error) {
-      this.logger.error(`Error deleting user with ID ${id}: ${error.message}`);
+      this.logger.error(
+        `Error soft deleting user with ID ${id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

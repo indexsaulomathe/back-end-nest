@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Request,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -19,7 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserEntity } from './entities/user.entity';
-import { JwtAuthGuard } from 'src/auth/jwt-config/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-config/jwt-auth.guard';
+import { Roles } from '../auth/roles-guard/roles.decorator';
+import { RolesGuard } from '../auth/roles-guard/roles.guard';
 import { CreateUserService } from './create-user/create-user.service';
 import { FindOneUserService } from './find-one-user/find-one-user.service';
 import { FindAllUserService } from './find-all-user/find-all-user.service';
@@ -28,6 +31,8 @@ import { DeleteUserService } from './delete-user/delete-user.service';
 
 @Controller('users')
 @ApiTags('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class UsersController {
   constructor(
     private readonly createUserService: CreateUserService,
@@ -38,46 +43,58 @@ export class UsersController {
   ) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create user' })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     status: 201,
     description: 'The user has been successfully created.',
   })
   @ApiOkResponse({ status: 403, description: 'Forbidden.' })
-  async create(@Body() createUserDto: CreateUserDto): Promise<UserEntity> {
-    return this.createUserService.create(createUserDto);
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @Request() req,
+  ): Promise<UserEntity> {
+    const authUser = req.user.email;
+    console.log('authUserEmail', authUser);
+    return this.createUserService.create(createUserDto, authUser);
   }
+
   @Get()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles('admin', 'user')
   @ApiOkResponse({ type: UserEntity, isArray: true })
   async findAll(): Promise<UserEntity[]> {
     return await this.findAllUserService.findAll();
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles('admin', 'user')
   @ApiOkResponse({ type: UserEntity })
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
     return this.findOneUserService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @Patch(':id')
+  @Roles('admin')
+  @ApiOkResponse({ type: UserEntity })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @Request() req,
   ): Promise<UserEntity> {
-    return this.updateUserService.update(id, updateUserDto);
+    const authUser = req.user.email;
+    console.log('authUserEmail', authUser);
+    return this.updateUserService.update(id, updateUserDto, authUser);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles('admin')
   @ApiOkResponse({ type: UserEntity })
-  async remove(@Param('id') id: number): Promise<UserEntity> {
-    return await this.deleteUserService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+  ): Promise<UserEntity> {
+    const authUser = req.user.email;
+    console.log('authUserEmail', authUser);
+    return await this.deleteUserService.remove(id, authUser);
   }
 }

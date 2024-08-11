@@ -10,11 +10,15 @@ export class FindAllUserService {
 
   async findAll(): Promise<UserEntity[]> {
     try {
-      const users = await this.prisma.user.findMany();
+      const users = await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+        },
+      });
 
       return users;
     } catch (error) {
-      this.logger.error(`Error finding users: ${error.message}`);
+      this.logger.error(`Error finding users: ${error.message}`, error.stack);
       throw error;
     }
   }

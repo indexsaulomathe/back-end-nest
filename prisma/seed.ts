@@ -8,21 +8,24 @@ const roundsOfHashing = 10;
 async function seedUsers() {
   const userData = [
     {
-      name: 'Sabin Adams',
-      email: 'sabin@adams.com',
-      password: 'password-sabin',
+      name: 'Admin',
+      email: 'admin@admin.com',
+      password: 'admin12345',
+      roles: ['admin'],
       blocked: false,
       createdBy: 'system',
     },
     {
-      name: 'Alex Ruheni',
-      email: 'alex@ruheni.com',
-      password: 'password-alex',
+      name: 'User',
+      email: 'user@user.com',
+      password: 'user12345',
+      roles: ['user'],
       blocked: false,
       createdBy: 'system',
     },
   ];
 
+  // Hash passwords and prepare user data
   const hashedUserData = await Promise.all(
     userData.map(async (user) => ({
       ...user,
@@ -30,11 +33,17 @@ async function seedUsers() {
     })),
   );
 
+  // Upsert users in the database
   return Promise.all(
     hashedUserData.map((user) =>
       prisma.user.upsert({
         where: { email: user.email },
-        update: { password: user.password },
+        update: {
+          password: user.password,
+          roles: user.roles,
+          blocked: user.blocked,
+          updatedBy: 'system',
+        },
         create: user,
       }),
     ),

@@ -1,9 +1,15 @@
-// update-user.service.ts
-
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UserEntity } from '../entities/user.entity';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserEntity } from '../entities/user.entity';
+import * as bcrypt from 'bcrypt';
+
+export const roundsOfHashing = 10;
 
 @Injectable()
 export class UpdateUserService {
@@ -11,24 +17,55 @@ export class UpdateUserService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<UserEntity> {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    authUser: string,
+  ): Promise<UserEntity> {
     try {
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: updateUserDto,
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id, isDeleted: false },
       });
 
-      console.log(updatedUser);
-
-      if (!updatedUser) {
+      if (!existingUser) {
         this.logger.warn(`User with ID ${id} not found.`);
         throw new NotFoundException(`User with ID ${id} not found.`);
       }
 
+      let hashedPassword: string | undefined = undefined;
+      if (
+        updateUserDto.password &&
+        updateUserDto.password !== existingUser.password
+      ) {
+        hashedPassword = await this.hashPassword(updateUserDto.password);
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          ...updateUserDto,
+          password: hashedPassword ?? existingUser.password,
+          updatedAt: new Date(),
+          updatedBy: authUser,
+        },
+      });
+
       return updatedUser;
     } catch (error) {
-      this.logger.error(`Error updating user with ID ${id}: ${error.message}`, error);
-      throw error;
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error updating user with ID ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'An error occurred while updating the user.',
+      );
     }
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, roundsOfHashing);
   }
 }
