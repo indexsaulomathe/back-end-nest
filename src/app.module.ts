@@ -13,9 +13,11 @@ import { PrismaService } from './prisma/prisma.service';
 import { JwtStrategy } from './auth/jwt-config/jwt.strategy';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { setupSwagger } from './swagger.config';
+import { WalletModule } from './wallet/wallet.module';
+import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule],
+  imports: [PrismaModule, UsersModule, AuthModule, WalletModule, TransactionModule],
   controllers: [AppController],
   providers: [AppService, PrismaService, JwtStrategy],
 })

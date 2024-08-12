@@ -11,13 +11,12 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  name     String
-  email    String   @unique
-  password String
-  roles    String[]
-  blocked  Boolean
-
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  roles     String[]
+  blocked   Boolean   @default(false)
   createdAt DateTime  @default(now())
   createdBy String
   updatedAt DateTime?
@@ -25,4 +24,54 @@ model User {
   deletedAt DateTime?
   deletedBy String?
   isDeleted Boolean   @default(false)
+  wallet    Wallet?   @relation(fields: [walletId], references: [id])
+  walletId  Int?
+}
+
+model Wallet {
+  id           Int           @id @default(autoincrement())
+  balance      Decimal       @default("0")
+  userId       Int           @unique
+  createdAt    DateTime      @default(now())
+  createdBy    String
+  updatedAt    DateTime?
+  updatedBy    String?
+  deletedAt    DateTime?
+  deletedBy    String?
+  isDeleted    Boolean       @default(false)
+  transactions Transaction[]
+  User         User[]
+}
+
+model Transaction {
+  id           Int               @id @default(autoincrement())
+  amount       Decimal           @default("0")
+  type         TransactionType
+  fromWalletId Int?
+  toWalletId   Int?
+  status       TransactionStatus @default(PENDING)
+  reversalId   Int?              @unique
+  createdAt    DateTime          @default(now())
+  createdBy    String
+  updatedAt    DateTime?
+  updatedBy    String?
+  deletedAt    DateTime?
+  deletedBy    String?
+  isDeleted    Boolean           @default(false)
+  Wallet       Wallet[]
+
+  @@index([fromWalletId])
+  @@index([toWalletId])
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  REVERSED
 }

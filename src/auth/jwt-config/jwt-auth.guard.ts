@@ -14,15 +14,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const request = context.switchToHttp().getRequest();
     const token = request.headers.authorization?.replace('Bearer ', '');
 
-    if (token) {
-      this.logger.debug(`Token received: ${token}`);
-    } else {
+    if (!token) {
       this.logger.warn('No token provided');
       throw new UnauthorizedException('No token provided');
     }
 
     const canActivate = (await super.canActivate(context)) as boolean;
-    this.logger.debug(`Can activate: ${canActivate}`);
     return canActivate;
   }
 }

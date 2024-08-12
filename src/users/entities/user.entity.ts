@@ -109,4 +109,12 @@ export class UserEntity implements User {
   })
   @IsBoolean()
   isDeleted: boolean;
+
+  @ApiProperty({
+    example: false,
+    description: 'wallet Id of the user.',
+  })
+  @IsNumber()
+  walletId: number | null;
+
 }

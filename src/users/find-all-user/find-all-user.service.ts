@@ -14,6 +14,9 @@ export class FindAllUserService {
         where: {
           isDeleted: false,
         },
+        orderBy: {
+          id: 'asc',
+        },
       });
 
       return users;

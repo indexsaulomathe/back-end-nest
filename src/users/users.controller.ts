@@ -55,7 +55,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin', 'user')
+  @Roles('admin')
   @ApiOkResponse({ type: UserEntity, isArray: true })
   async findAll(): Promise<UserEntity[]> {
     return await this.findAllUserService.findAll();
