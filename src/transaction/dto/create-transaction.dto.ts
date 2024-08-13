@@ -2,8 +2,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
-  IsNumber,
-  Min,
+  IsString,
   ValidateIf,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -21,13 +20,11 @@ export class CreateTransactionDto {
 
   @ApiProperty({
     description: 'Amount of the transaction',
-    example: 100.0,
-    minimum: 0.01,
+    example: '100.00',
   })
   @IsNotEmpty({ message: 'Amount must not be empty' })
-  @IsNumber({}, { message: 'Amount must be a valid number' })
-  @Min(0.01, { message: 'Amount must be greater than zero' })
-  amount: number;
+  @IsString({ message: 'Amount must be a string' })
+  amount: string;
 
   @ApiProperty({
     description:

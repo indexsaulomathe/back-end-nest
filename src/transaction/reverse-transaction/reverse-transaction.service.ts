@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionType, TransactionStatus } from '@prisma/client';
 import { Decimal } from 'decimal.js';
+import { TransactionEntity } from '../entities/transaction.entity';
 
 @Injectable()
 export class ReverseTransactionService {
@@ -15,17 +16,18 @@ export class ReverseTransactionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async reverseTransaction(transactionId: number): Promise<void> {
+  async reverseTransaction(transactionId: number): Promise<TransactionEntity> {
     const transaction = await this.findTransaction(transactionId);
-    await this.validateTransactionStatus(transaction);
+    this.validateTransactionStatus(transaction);
 
     try {
       await this.prisma.$transaction(async (prisma) => {
         await this.handleTransactionReversal(this.prisma, transaction);
         await this.updateTransactionStatus(transactionId);
       });
+      return transaction as TransactionEntity;
     } catch (error) {
-      this.handleException(error);
+      return this.handleException(error);
     }
   }
 
@@ -44,7 +46,7 @@ export class ReverseTransactionService {
     return transaction;
   }
 
-  private async validateTransactionStatus(transaction: any) {
+  private validateTransactionStatus(transaction: any) {
     if (transaction.status !== TransactionStatus.PENDING) {
       this.logger.error(
         `Transaction with ID ${transaction.id} cannot be reversed. Status: ${transaction.status}`,
@@ -61,19 +63,10 @@ export class ReverseTransactionService {
   ) {
     switch (transaction.type) {
       case TransactionType.TRANSFER:
-        await this.reverseTransfer(
-          prisma,
-          new Decimal(transaction.amount),
-          transaction.fromWalletId,
-          transaction.toWalletId,
-        );
+        await this.reverseTransfer(prisma, transaction);
         break;
       case TransactionType.DEPOSIT:
-        await this.reverseDeposit(
-          prisma,
-          new Decimal(transaction.amount),
-          transaction.fromWalletId,
-        );
+        await this.reverseDeposit(prisma, transaction);
         break;
       default:
         this.logger.error(
@@ -83,32 +76,40 @@ export class ReverseTransactionService {
     }
   }
 
-  private async reverseTransfer(
-    prisma: PrismaService,
-    amount: Decimal,
-    fromWalletId: number | null,
-    toWalletId: number | null,
-  ) {
-    await this.validateWallets(prisma, fromWalletId, toWalletId);
-
-    await this.updateWalletBalance(prisma, fromWalletId, amount, 'plus');
-    await this.updateWalletBalance(prisma, toWalletId, amount, 'minus');
-
+  private async reverseTransfer(prisma: PrismaService, transaction: any) {
+    await this.validateWallets(
+      prisma,
+      transaction.fromWalletId,
+      transaction.toWalletId,
+    );
+    await this.updateWalletBalance(
+      prisma,
+      transaction.fromWalletId,
+      transaction.amount,
+      'plus',
+    );
+    await this.updateWalletBalance(
+      prisma,
+      transaction.toWalletId,
+      transaction.amount,
+      'minus',
+    );
     this.logger.log(
-      `Transfer reversal from wallet ${fromWalletId} to wallet ${toWalletId} completed.`,
+      `Transfer reversal from wallet ${transaction.fromWalletId} to wallet ${transaction.toWalletId} completed.`,
     );
   }
 
-  private async reverseDeposit(
-    prisma: PrismaService,
-    amount: Decimal,
-    walletId: number | null,
-  ) {
-    await this.validateWallet(prisma, walletId);
-
-    await this.updateWalletBalance(prisma, walletId, amount, 'minus');
-
-    this.logger.log(`Deposit reversal for wallet ${walletId} completed.`);
+  private async reverseDeposit(prisma: PrismaService, transaction: any) {
+    await this.validateWallet(prisma, transaction.fromWalletId);
+    await this.updateWalletBalance(
+      prisma,
+      transaction.fromWalletId,
+      transaction.amount,
+      'minus',
+    );
+    this.logger.log(
+      `Deposit reversal for wallet ${transaction.fromWalletId} completed.`,
+    );
   }
 
   private async validateWallets(
@@ -124,12 +125,14 @@ export class ReverseTransactionService {
 
   private async validateWallet(prisma: PrismaService, walletId: number | null) {
     if (walletId === null) {
+      this.logger.error('Wallet ID is required.');
       throw new BadRequestException('Wallet ID is required.');
     }
 
     const wallet = await prisma.wallet.findUnique({ where: { id: walletId } });
 
     if (!wallet || wallet.isDeleted) {
+      this.logger.error(`Wallet with ID ${walletId} not found.`);
       throw new NotFoundException(`Wallet with ID ${walletId} not found.`);
     }
   }
@@ -137,7 +140,7 @@ export class ReverseTransactionService {
   private async updateWalletBalance(
     prisma: PrismaService,
     walletId: number | null,
-    amount: Decimal,
+    amount: string,
     operation: 'plus' | 'minus',
   ) {
     if (walletId === null) {
@@ -152,14 +155,17 @@ export class ReverseTransactionService {
       throw new NotFoundException(`Wallet with ID ${walletId} not found.`);
     }
 
+    const currentBalance = new Decimal(wallet.balance);
+    const decimalAmount = new Decimal(amount);
+
     const newBalance =
       operation === 'plus'
-        ? new Decimal(wallet.balance).plus(amount)
-        : new Decimal(wallet.balance).minus(amount);
+        ? currentBalance.plus(decimalAmount)
+        : currentBalance.minus(decimalAmount);
 
     await prisma.wallet.update({
       where: { id: walletId },
-      data: { balance: newBalance.toFixed(2) },
+      data: { balance: newBalance.toFixed(2) }, // Convert back to string with 2 decimal places
     });
   }
 
@@ -170,7 +176,7 @@ export class ReverseTransactionService {
     });
   }
 
-  private handleException(error: any) {
+  private handleException(error: any): never {
     if (
       error instanceof BadRequestException ||
       error instanceof NotFoundException

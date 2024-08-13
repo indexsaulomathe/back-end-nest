@@ -30,7 +30,7 @@ model User {
 
 model Wallet {
   id           Int           @id @default(autoincrement())
-  balance      Decimal       @default("0")
+  balance      String        @default("0")
   userId       Int           @unique
   createdAt    DateTime      @default(now())
   createdBy    String
@@ -45,7 +45,7 @@ model Wallet {
 
 model Transaction {
   id           Int               @id @default(autoincrement())
-  amount       Decimal           @default("0")
+  amount       String            @default("0")
   type         TransactionType
   fromWalletId Int?
   toWalletId   Int?

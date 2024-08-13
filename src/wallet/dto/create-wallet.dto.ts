@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsInt, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsInt, IsNumber, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateWalletDto {
@@ -13,9 +13,9 @@ export class CreateWalletDto {
 
   @ApiProperty({
     description: 'Initial balance of the wallet',
-    example: 100.0,
+    example: '100.00',
     required: true,
   })
-  @IsNumber({}, { message: 'Balance must be a number' })
-  balance: number;
+  @IsString({ message: 'Balance must be a string' })
+  balance: string;
 }

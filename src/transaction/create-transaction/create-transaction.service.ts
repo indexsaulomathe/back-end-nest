@@ -8,8 +8,8 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTransactionDto } from '../dto/create-transaction.dto';
 import { TransactionType, TransactionStatus } from '@prisma/client';
-import { Decimal } from 'decimal.js';
 import { TransactionEntity } from '../entities/transaction.entity';
+import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class CreateTransactionService {
@@ -82,11 +82,7 @@ export class CreateTransactionService {
 
     await this.checkWalletExists(prisma, fromWalletId);
     await this.checkWalletExists(prisma, toWalletId);
-    await this.checkSufficientBalance(
-      prisma,
-      fromWalletId,
-      new Decimal(amount),
-    );
+    await this.checkSufficientBalance(prisma, fromWalletId, amount);
   }
 
   private async validateDepositData(
@@ -117,7 +113,7 @@ export class CreateTransactionService {
   private async checkSufficientBalance(
     prisma: PrismaService,
     walletId: number,
-    amount: Decimal,
+    amount: string,
   ) {
     const wallet = await prisma.wallet.findUnique({
       where: { id: walletId },
@@ -128,7 +124,10 @@ export class CreateTransactionService {
       throw new NotFoundException(`Wallet with ID ${walletId} not found.`);
     }
 
-    if (wallet.balance.lessThan(amount)) {
+    const currentBalance = new Decimal(wallet.balance);
+    const transactionAmount = new Decimal(amount);
+
+    if (currentBalance.lessThan(transactionAmount)) {
       this.logger.error('Insufficient balance.');
       throw new BadRequestException('Insufficient balance.');
     }
@@ -202,11 +201,12 @@ export class CreateTransactionService {
       throw new NotFoundException(`Wallet with ID ${walletId} not found.`);
     }
 
-    const newBalance = wallet.balance.add(amount);
+    const currentBalance = new Decimal(wallet.balance);
+    const newBalance = currentBalance.add(amount);
 
     await prisma.wallet.update({
       where: { id: walletId },
-      data: { balance: newBalance },
+      data: { balance: newBalance.toFixed(2) },
     });
   }
 
