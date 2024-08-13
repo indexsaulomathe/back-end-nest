@@ -52,7 +52,7 @@ export class ReverseTransactionService {
         `Transaction with ID ${transaction.id} cannot be reversed. Status: ${transaction.status}`,
       );
       throw new BadRequestException(
-        `Transaction with ID ${transaction.id} cannot be reversed. It must be completed.`,
+        `Transaction with ID ${transaction.id} cannot be reversed. Status: ${transaction.status}`,
       );
     }
   }
