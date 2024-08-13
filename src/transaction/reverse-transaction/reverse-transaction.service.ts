@@ -25,7 +25,7 @@ export class ReverseTransactionService {
         await this.handleTransactionReversal(this.prisma, transaction);
         await this.updateTransactionStatus(transactionId);
       });
-      return transaction as TransactionEntity;
+      return await this.findTransaction(transactionId);
     } catch (error) {
       return this.handleException(error);
     }
@@ -47,12 +47,12 @@ export class ReverseTransactionService {
   }
 
   private validateTransactionStatus(transaction: any) {
-    if (transaction.status !== TransactionStatus.PENDING) {
+    if (transaction.status !== TransactionStatus.COMPLETED) {
       this.logger.error(
         `Transaction with ID ${transaction.id} cannot be reversed. Status: ${transaction.status}`,
       );
       throw new BadRequestException(
-        `Transaction with ID ${transaction.id} cannot be reversed.`,
+        `Transaction with ID ${transaction.id} cannot be reversed. It must be completed.`,
       );
     }
   }
@@ -165,7 +165,7 @@ export class ReverseTransactionService {
 
     await prisma.wallet.update({
       where: { id: walletId },
-      data: { balance: newBalance.toFixed(2) }, // Convert back to string with 2 decimal places
+      data: { balance: newBalance.toFixed(2) },
     });
   }
 

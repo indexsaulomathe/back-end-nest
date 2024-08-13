@@ -10,12 +10,16 @@ import { TransactionType } from '@prisma/client';
 
 export class CreateTransactionDto {
   @ApiProperty({
-    description: 'Type of the transaction, either DEPOSIT or TRANSFER',
+    description:
+      'Type of the transaction. Allowed values: DEPOSIT, or TRANSFER.',
     enum: TransactionType,
     example: TransactionType.DEPOSIT,
   })
   @IsNotEmpty({ message: 'Transaction type must not be empty' })
-  @IsEnum(TransactionType, { message: 'Invalid transaction type' })
+  @IsEnum(TransactionType, {
+    message:
+      'Invalid transaction type. Allowed values are DEPOSIT, or TRANSFER.',
+  })
   type: TransactionType;
 
   @ApiProperty({
@@ -28,14 +32,14 @@ export class CreateTransactionDto {
 
   @ApiProperty({
     description:
-      'ID of the wallet from which the amount is transferred (required for TRANSFER)',
+      'ID of the wallet from which the amount is transferred (required for TRANSFER and DEPOSIT)',
     example: 1,
-    required: false,
+    required: true,
   })
   @ValidateIf((o) => o.type === TransactionType.TRANSFER)
   @IsNotEmpty({ message: 'fromWalletId must not be empty for a transfer' })
   @IsInt({ message: 'fromWalletId must be an integer' })
-  fromWalletId?: number;
+  fromWalletId: number;
 
   @ApiProperty({
     description:

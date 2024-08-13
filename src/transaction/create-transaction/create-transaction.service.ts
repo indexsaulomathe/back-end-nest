@@ -21,27 +21,25 @@ export class CreateTransactionService {
     data: CreateTransactionDto,
     authUser: string,
   ): Promise<TransactionEntity> {
-    this.logger.log('Starting transaction creation process.');
-
     try {
       return await this.prisma.$transaction(async (prisma) => {
         await this.validateTransactionData(this.prisma, data);
-        await this.processTransaction(this.prisma, data);
-        const transactionRecord = await this.createTransactionRecord(
+
+        const transaction = await this.createTransactionRecord(
           this.prisma,
           data,
           authUser,
         );
 
-        if (!transactionRecord) {
-          this.logger.error('Failed to create transaction record.');
-          throw new InternalServerErrorException(
-            'Transaction creation failed.',
-          );
-        }
+        await this.processTransaction(this.prisma, data);
 
-        this.logger.log('Transaction record created successfully.');
-        return transactionRecord;
+        const updatedTransaction = await this.updateTransactionRecord(
+          this.prisma,
+          transaction.id,
+          authUser,
+        );
+
+        return updatedTransaction;
       });
     } catch (error) {
       this.handleException(error);
@@ -225,6 +223,23 @@ export class CreateTransactionService {
         toWalletId: toWalletId || null,
         createdBy: authUser,
         status: TransactionStatus.PENDING,
+      },
+    });
+
+    return transaction as TransactionEntity;
+  }
+
+  private async updateTransactionRecord(
+    prisma: PrismaService,
+    transactionId: number,
+    authUser: string,
+  ): Promise<TransactionEntity> {
+    const transaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        updatedBy: authUser,
+        updatedAt: new Date(),
+        status: TransactionStatus.COMPLETED,
       },
     });
 
