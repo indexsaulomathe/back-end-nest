@@ -13,15 +13,20 @@ export class FindOneWalletByUserService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByUserId(id: number): Promise<WalletEntity> {
+  async findByUserId(userId: number): Promise<WalletEntity> {
     try {
       const wallet = await this.prisma.wallet.findUnique({
-        where: { userId: id, isDeleted: false },
+        where: {
+          userId: userId,
+          isDeleted: false,
+        },
       });
 
-      if (!wallet) {
-        this.logger.warn(`No wallet found for user ID ${id}.`);
-        throw new NotFoundException(`No wallet found for user ID ${id}.`);
+      if (!wallet || wallet.isDeleted) {
+        this.logger.warn(`No active wallet found for user ID ${userId}.`);
+        throw new NotFoundException(
+          `No active wallet found for user ID ${userId}.`,
+        );
       }
 
       return wallet;
@@ -29,7 +34,7 @@ export class FindOneWalletByUserService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      const errorMessage = `An unexpected error occurred while retrieving wallet for user ID ${id}.`;
+      const errorMessage = `An unexpected error occurred while retrieving wallet for user ID ${userId}.`;
       this.logger.error(`${errorMessage}`, (error as any).stack);
       throw new InternalServerErrorException(errorMessage);
     }
