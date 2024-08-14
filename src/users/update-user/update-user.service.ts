@@ -8,7 +8,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const roundsOfHashing = 10;
 

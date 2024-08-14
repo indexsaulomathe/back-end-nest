@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { UserEntity } from '../entities/user.entity';
 
 const ROUNDS_OF_HASHING = 10;
