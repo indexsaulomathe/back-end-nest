@@ -11,7 +11,7 @@ async function seedUsers() {
       name: 'Admin',
       email: 'admin@admin.com',
       password: 'admin12345',
-      roles: ['admin'],
+      roles: ['admin', 'user'],
       blocked: false,
       createdBy: 'system',
     },
@@ -33,10 +33,10 @@ async function seedUsers() {
     })),
   );
 
-  // Upsert users in the database
+  // Upsert users and create wallets in the database
   return Promise.all(
-    hashedUserData.map((user) =>
-      prisma.user.upsert({
+    hashedUserData.map(async (user) => {
+      const createdUser = await prisma.user.upsert({
         where: { email: user.email },
         update: {
           password: user.password,
@@ -45,8 +45,19 @@ async function seedUsers() {
           updatedBy: 'system',
         },
         create: user,
-      }),
-    ),
+      });
+
+      // Create a wallet for each user
+      await prisma.wallet.upsert({
+        where: { userId: createdUser.id },
+        update: {}, // No fields to update for existing wallets
+        create: {
+          balance: "0",
+          userId: createdUser.id,
+          createdBy: 'system',
+        },
+      });
+    }),
   );
 }
 
