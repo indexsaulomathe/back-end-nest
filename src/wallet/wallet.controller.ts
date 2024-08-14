@@ -28,6 +28,7 @@ import { CreateWalletService } from './create-wallet-service/create-wallet.servi
 import { FindAllWalletService } from './find-all-wallet-service/find-all-wallet-service';
 import { UpdateWalletService } from './update-wallet-service/update-wallet-service';
 import { DeleteWalletService } from './delete-wallet-service/delete-wallet-service';
+import { FindOneWalletByUserService } from './find-one-wallet-by-user-service/find-one-wallet-by-user-service';
 
 @Controller('wallets')
 @ApiTags('wallets')
@@ -40,6 +41,7 @@ export class WalletController {
     private readonly findAllWalletService: FindAllWalletService,
     private readonly updateWalletService: UpdateWalletService,
     private readonly deleteWalletService: DeleteWalletService,
+    private readonly findOneWalletByUserService: FindOneWalletByUserService,
   ) {}
 
   @Post()
@@ -93,5 +95,15 @@ export class WalletController {
   ): Promise<WalletEntity> {
     const authUser = req.user.email;
     return this.deleteWalletService.remove(id, authUser);
+  }
+
+  @Get('user/:id')
+  @Roles('admin', 'user')
+  @ApiOperation({ summary: 'Retrieve a wallet by user ID' })
+  @ApiOkResponse({ type: WalletEntity })
+  async findByUserId(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<WalletEntity> {
+    return await this.findOneWalletByUserService.findByUserId(id);
   }
 }

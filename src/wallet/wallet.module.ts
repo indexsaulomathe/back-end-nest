@@ -6,6 +6,7 @@ import { CreateWalletService } from './create-wallet-service/create-wallet.servi
 import { FindAllWalletService } from './find-all-wallet-service/find-all-wallet-service';
 import { UpdateWalletService } from './update-wallet-service/update-wallet-service';
 import { DeleteWalletService } from './delete-wallet-service/delete-wallet-service';
+import { FindOneWalletByUserService } from './find-one-wallet-by-user-service/find-one-wallet-by-user-service';
 
 @Module({
   imports: [],
@@ -17,6 +18,7 @@ import { DeleteWalletService } from './delete-wallet-service/delete-wallet-servi
     FindAllWalletService,
     UpdateWalletService,
     DeleteWalletService,
+    FindOneWalletByUserService,
   ],
 })
 export class WalletModule {}
